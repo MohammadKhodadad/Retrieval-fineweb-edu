@@ -26,16 +26,16 @@ def main() -> None:
         help="Keyword to match (repeatable). If omitted, uses a default chemistry keyword list.",
     )
     fw.add_argument(
-        "--min-keyword-hits",
+        "--min-weak-keyword-hits",
         type=int,
-        default=1,
-        help="Require at least N keyword matches (keyword mode only).",
+        default=6,
+        help="Require at least N weak keyword matches (used when strong threshold is not met).",
     )
     fw.add_argument(
         "--min-strong-keyword-hits",
         type=int,
         default=1,
-        help="Require at least N strong chemistry keyword matches (keyword mode only).",
+        help="Require at least N strong keyword matches.",
     )
     fw.add_argument(
         "--url-contains",
@@ -73,7 +73,7 @@ def main() -> None:
             max_rows=args.max_rows,
             max_kept=args.max_kept,
             keywords=args.keyword,
-            min_keyword_hits=args.min_keyword_hits,
+            min_weak_keyword_hits=args.min_weak_keyword_hits,
             min_strong_keyword_hits=args.min_strong_keyword_hits,
             url_contains=args.url_contains,
             url_regex=args.url_regex,

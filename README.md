@@ -28,7 +28,7 @@ Re-run the same command to **resume** (default). Use `--no-resume` to restart fr
 
 ```bash
 # Make filtering stricter/looser
-uv run chemfilter filter-fineweb --out "data/filtered/kw_20k" --config sample-10BT --max-rows 20000 --min-keyword-hits 2 --min-strong-keyword-hits 1
+uv run chemfilter filter-fineweb --out "data/filtered/kw_20k" --config sample-10BT --max-rows 20000 --min-strong-keyword-hits 1 --min-weak-keyword-hits 3
 
 # Chunk sizing
 uv run chemfilter filter-fineweb --out "data/filtered/kw_20k" --config sample-10BT --max-rows 20000 --chunk-tokens 320 --chunk-overlap 40

@@ -36,7 +36,7 @@ def run_filter_fineweb(
     max_rows: int,
     max_kept: int,
     keywords: list[str],
-    min_keyword_hits: int,
+    min_weak_keyword_hits: int,
     min_strong_keyword_hits: int,
     url_contains: list[str],
     url_regex: str,
@@ -152,10 +152,107 @@ def run_filter_fineweb(
         "spectral data",
         "general procedure",
         "experimental section",
+        # Even more strong markers (more recall)
+        "chemrxiv",
+        "rxiv",
+        "supporting information:",
+        "supplementary information:",
+        # Synthesis-specific reagents/notations
+        "pd/c",
+        "tmscl",
+        "tbaf",
+        "n-buli",
+        "nbuli",
+        "lihm ds",
+        "lihmds",
+        "lithium hexamethyldisilazide",
+        # Structural identifiers & registries
+        "mol file",
+        "sdf file",
+        "structure deposited",
+        "ccdc",
+        "cambridge crystallographic data centre",
+        "crystallographic data have been deposited",
+        "cif file",
+        # Expanded NMR reporting language
+        "δ ppm",
+        "δ (ppm)",
+        "multiplet",
+        "doublet",
+        "triplet",
+        "quartet",
+        "singlet",
+        "br s",
+        "br d",
+        "br t",
+        "coupling constant",
+        "j =",
+        "j-value",
+        "j coupling",
+        # More solvent-specific deuterated forms
+        "c6d6",
+        "cd2cl2",
+        "acetonitrile-d3",
+        "pyridine-d5",
+        "chloroform-d",
+        # High-precision mass spec conventions
+        "found for",
+        "[m+h]+",
+        "[m+na]+",
+        "[m-k]+",
+        "[m-h]-",
+        "exact mass",
+        "isotopic pattern",
+        # Crystal structure language (chem-exclusive)
+        "thermal ellipsoids",
+        "asymmetric unit",
+        "refinement converged",
+        "r1 value",
+        "wr2 value",
+        "space group",
+        "unit cell parameters",
+        # Synthetic chemistry operations (very SI-specific)
+        "added dropwise",
+        "stirred overnight",
+        "under reflux",
+        "cooled in ice bath",
+        "quenched with",
+        "organic layer was separated",
+        "aqueous layer was extracted",
+        "combined organic extracts",
+        "dried over na2so4",
+        "concentrated in vacuo",
+        "under reduced pressure",
+        # Reagent shorthand chemists use constantly
+        "nbs",
+        "ddq",
+        "pcc",
+        "pdc",
+        "dibal-h",
+        "lah",
+        "nab h4",
+        "tfa",
+        "tea",
+        "dipea",
+        "hünig’s base",
+        "hunig's base",
+        # Paper-specific chemistry phrases
+        "all reactions were carried out under",
+        "commercial reagents were used without further purification",
+        "yields refer to isolated products",
+        "spectra are consistent with literature",
+        # Named chemistry-exclusive data types
+        "single-crystal structure",
+        "crystal structure analysis",
+        "nmr spectra are shown",
+        "hrms data",
+        "ftir spectrum",
     ]
     # "Weak" keywords can be chemistry-related, but are common across many sciences.
     default_weak_keywords = [
         # Cross-domain analytical terms (bio/med also uses them heavily)
+        "doi:",
+        "doi.org/",
         "chromatography",
         "mass spectrometry",
         "ms/ms",
@@ -310,6 +407,44 @@ def run_filter_fineweb(
         "assay",
         "sample preparation",
         "calibration curve",
+        # More chemistry vocabulary (weak; helps recall)
+        "reaction pathway",
+        "mechanistic study",
+        "mechanistic studies",
+        "catalyst loading",
+        "turnover frequency",
+        "turnover number",
+        "conversion",
+        "isolated yield",
+        "crude",
+        "purity",
+        "gcms",
+        # More named reactions / common chemistry terms
+        "suzuki",
+        "heck",
+        "sonogashira",
+        "buchwald-hartwig",
+        "stille",
+        "negishi",
+        "kumada",
+        "click reaction",
+        "diels-alder",
+        "friedel-crafts",
+        # More solvents/reagents abbreviations
+        "meoh",
+        "etoh",
+        "mecn",
+        "dioxane",
+        "diethyl ether",
+        "chloroform",
+        "acetone",
+        # More workup / purification language
+        "in vacuo",
+        "under vacuum",
+        "reduced pressure",
+        "rotavap",
+        "tlc",
+        "rf",
         # Paper-ish phrases
         "experimental section",
         "general procedure",
@@ -320,6 +455,11 @@ def run_filter_fineweb(
         "yield",
         "melting point",
         "boiling point",
+        # Registries / author metadata (paper-ish, not chemistry-specific)
+        "orcid",
+        # Crystal structure measurement language (weak; appears beyond chemistry)
+        "angstrom",
+        "å",
     ]
 
     if keywords:
@@ -328,6 +468,10 @@ def run_filter_fineweb(
     else:
         strong_kw_list = [k.lower() for k in default_strong_keywords]
         weak_kw_list = [k.lower() for k in default_weak_keywords]
+
+    # Ensure strong/weak are actually separate to avoid double-counting.
+    strong_set = set(strong_kw_list)
+    weak_kw_list = [w for w in weak_kw_list if w not in strong_set]
 
     def _compile_keywords(kw_list: list[str]) -> tuple[list[tuple[str, re.Pattern[str]]], list[str]]:
         # For short alpha-numeric keywords (e.g. "hplc"), require word boundaries
@@ -369,7 +513,7 @@ def run_filter_fineweb(
                 "n_seen": n_seen,
                 "n_kept": n_kept,
                 "mode": "keyword",
-                "min_keyword_hits": min_keyword_hits,
+                "min_weak_keyword_hits": min_weak_keyword_hits,
                 "min_strong_keyword_hits": min_strong_keyword_hits,
             },
         )
@@ -416,6 +560,8 @@ def run_filter_fineweb(
         matched: list[str] = []
         strong_hits = 0
         strong_matched: list[str] = []
+        weak_hits = 0
+        weak_matched: list[str] = []
 
         for k, rx in strong_rx:
             if rx.search(text):
@@ -434,14 +580,18 @@ def run_filter_fineweb(
             if rx.search(text):
                 hits += 1
                 matched.append(k)
+                weak_hits += 1
+                weak_matched.append(k)
         for k in weak_sub:
             if k and k in lower:
                 hits += 1
                 matched.append(k)
+                weak_hits += 1
+                weak_matched.append(k)
 
-        if hits < max(1, int(min_keyword_hits)):
-            continue
-        if strong_hits < max(0, int(min_strong_keyword_hits)):
+        # New default logic:
+        # keep if (strong_hits >= min_strong_keyword_hits) OR (weak_hits >= min_weak_keyword_hits)
+        if (strong_hits < max(0, int(min_strong_keyword_hits))) and (weak_hits < max(0, int(min_weak_keyword_hits))):
             continue
 
         # Keep doc
@@ -461,6 +611,8 @@ def run_filter_fineweb(
             "matched_keywords": matched[:20],
             "strong_keywords_matched": strong_hits,
             "matched_strong_keywords": strong_matched[:20],
+            "weak_keywords_matched": weak_hits,
+            "matched_weak_keywords": weak_matched[:20],
         }
         write_jsonl(docs_path, doc_obj)
 
@@ -493,7 +645,7 @@ def run_filter_fineweb(
                 n_seen=n_seen,
                 n_kept=n_kept,
                 mode="keyword",
-                min_keyword_hits=min_keyword_hits,
+                min_weak_keyword_hits=min_weak_keyword_hits,
                 min_strong_keyword_hits=min_strong_keyword_hits,
             )
 
@@ -511,7 +663,7 @@ def run_filter_fineweb(
         n_seen=n_seen,
         n_kept=n_kept,
         mode="keyword",
-        min_keyword_hits=min_keyword_hits,
+        min_weak_keyword_hits=min_weak_keyword_hits,
         min_strong_keyword_hits=min_strong_keyword_hits,
     )
     _write_progress()
