@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+
+# Virtual envs
+.venv/
+venv/
+
+# Local env / secrets
+.env
+.env.*
+
+# Data outputs (keep out of git)
+data/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
